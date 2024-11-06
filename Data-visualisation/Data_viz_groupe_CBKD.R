@@ -7,6 +7,8 @@
 #    https://shiny.posit.co/
 #
 
+
+library(ggplot2)
 library(shiny)
 
 # Define UI for application that draws a histogram
