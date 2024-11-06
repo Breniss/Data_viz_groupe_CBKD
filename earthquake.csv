@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>URL</key>
+	<string>https://earthquake.usgs.gov/fdsnws/event/1/query.csv?starttime=2024-06-01%2000:00:00&amp;endtime=2024-08-31%2023:59:59&amp;maxlatitude=50&amp;minlatitude=24.6&amp;maxlongitude=-65&amp;minlongitude=-125&amp;minmagnitude=1.5&amp;orderby=time</string>
+</dict>
+</plist>
