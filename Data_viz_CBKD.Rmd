@@ -9,7 +9,7 @@ runtime: shiny
 
 ```{r}
 getwd()
-setwd("/Users/constance/Documents/Université/M2/S1/Projet/Data-visualisation")
+setwd("/Users/constance/Documents/Université/M2/S1/Projet/Data-visualisation/Data_viz_groupe_CBKD")
 ```
 
 ## Téléchargement des packages
@@ -163,7 +163,7 @@ Serveur :
 ```{r, echo=FALSE}
 server <- function(input, output, session) {
   
-  # Données filtrées en fonction des sliders
+ # Données filtrées en fonction des sliders
   selected_data <- reactive({
     data %>%
       filter(
@@ -174,35 +174,68 @@ server <- function(input, output, session) {
       )
   })
   
-  # Carte interactive
+  # Données pour la ligne sélectionnée dans le tableau
+  selected_row <- reactive({
+    if (!is.null(input$table_rows_selected)) {
+      selected_data()[input$table_rows_selected, ]  # Ligne sélectionnée
+    } else {
+      selected_data()  # Si aucune sélection, toutes les données filtrées
+    }
+  })
+  
+  # Carte interactive initiale
   output$map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
       setView(lng = -98, lat = 40, zoom = 4)
   })
   
+  # Mise à jour de la carte
   observe({
-    leafletProxy("map", data = selected_data()) %>%
-      clearMarkers() %>%
-      addCircleMarkers(
-        ~longitude, ~latitude,
-        radius = ~mag * input$radius / 2,
-        color = ~colorNumeric("Reds", domain = data$mag)(mag),
-        stroke = FALSE,
-        fillOpacity = 1,
-        popup = ~paste(
-          "Lieu :", place, "<br>",
-          "Magnitude :", mag, "<br>",
-          "Profondeur :", depth, "km"
+    # Si une ligne est sélectionnée
+    if (!is.null(input$table_rows_selected)) {
+      # Afficher uniquement le séisme sélectionné
+      leafletProxy("map") %>%
+        clearMarkers() %>%
+        addCircleMarkers(
+          data = selected_row(),
+          ~longitude, ~latitude,
+          radius = ~mag * input$radius / 2,
+          color = "blue",  # Couleur spécifique pour le séisme sélectionné
+          stroke = TRUE,
+          fillOpacity = 1,
+          popup = ~paste(
+            "Lieu :", place, "<br>",
+            "Magnitude :", mag, "<br>",
+            "Profondeur :", depth, "km"
+          )
         )
-      )
+    } else {
+      # Afficher tous les séismes filtrés
+      leafletProxy("map", data = selected_data()) %>%
+        clearMarkers() %>%
+        addCircleMarkers(
+          ~longitude, ~latitude,
+          radius = ~mag * input$radius / 2,
+          color = ~colorNumeric("Reds", domain = data$mag)(mag),
+          stroke = FALSE,
+          fillOpacity = 1,
+          popup = ~paste(
+            "Lieu :", place, "<br>",
+            "Magnitude :", mag, "<br>",
+            "Profondeur :", depth, "km"
+          )
+        )
+    }
   })
   
   # Tableau interactif
   output$table <- renderDT({
     datatable(selected_data()[, c("time", "latitude", "longitude", "mag", "depth")], 
-              options = list(pageLength = 10), selection = "single")
+              options = list(pageLength = 10), 
+              selection = "single")
   })
+  
   
   # Graphique temporel
   output$time_series <- renderPlotly({
