@@ -8,12 +8,18 @@ runtime: shiny
 ---
 
 ```{r}
-getwd()
-setwd("/Users/constance/Documents/Université/M2/S1/Projet/Data-visualisation/Data_viz_groupe_CBKD")
+
+#rsconnect::setAccountInfo(name='kbdc', token='332EB08F9E5AD3BE360B63724E6276D6', secret='ng6vFY0zw4b7EDIR58fCfjgVLbrjsKV5YFoZNQvK')
+
 ```
 
 ## Téléchargement des packages
 ```{r setup, include=FALSE}
+#if(!require("devtools"))
+  #install.packages("devtools")
+#devtools::install_github("rstudio/rsconnect")
+
+library(rsconnect)
 library(shiny)
 library(leaflet)
 library(ggplot2)
@@ -22,7 +28,7 @@ library(lubridate)
 library(plotly)
 library(DT)  #tableau interactif
 library(flexdashboard)
-
+library(shinythemes)
 ```
 
 ## Introduction
@@ -33,7 +39,7 @@ Ce document présente une analyse interactive des séismes aux États-Unis à l'
 
 ```{r}
 # Chargement des données
-data <- read.csv("/Users/constance/Documents/Université/M2/S1/Projet/Data-visualisation/Data1.csv")
+data <- read.csv("data/Data1.csv")
 
 # Afficher un aperçu des données
 head(data)
@@ -108,14 +114,21 @@ Interface Utilisateur :
 
 ```{r, echo=FALSE}
 ui <- fluidPage(
-  titlePanel("Analyse Interactive des Séismes aux États-Unis"),
+  theme = shinytheme("slate"),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
+  ),
+  
+
+  titlePanel("Les séismes aux États-Unis et au Mexique"),
   sidebarLayout(
     sidebarPanel(
       sliderInput("radius", "Taille des points", min = 1, max = 10, value = 3),
       sliderInput("magnitude", "Filtrer par magnitude :", 
-                  min = 1, max = 6, value = c(2, 5)),
+                  min = 1, max = 6, value = c(1, 6)),
       sliderInput("depth", "Filtrer par profondeur :", 
-                  min = 0, max = 150, value = c(0, 50)),
+                  min = -10, max = 150, value = c(0, 100)),
+      checkboxInput("show_heatmap", "Afficher la Heatmap", value = FALSE),
       actionButton("reset", "Réinitialiser les filtres"),
       downloadButton("downloadData", "Télécharger les données filtrées")
     ),
@@ -156,6 +169,7 @@ ui <- fluidPage(
 )
 
 
+
 ```
 
 Serveur :
@@ -174,20 +188,33 @@ server <- function(input, output, session) {
       )
   })
   
+  # Afficher un message si aucun séisme ne correspond aux filtres
+observe({
+  if (nrow(selected_data()) == 0) {
+    showNotification(
+      "Aucun séisme ne correspond aux filtres sélectionnés.",
+      type = "warning",
+      duration = 5,
+      closeButton = TRUE
+    )
+  }
+})
+  
   # Données pour la ligne sélectionnée dans le tableau
-  selected_row <- reactive({
-    if (!is.null(input$table_rows_selected)) {
-      selected_data()[input$table_rows_selected, ]  # Ligne sélectionnée
-    } else {
-      selected_data()  # Si aucune sélection, toutes les données filtrées
-    }
-  })
+selected_row <- reactive({
+  if (!is.null(input$table_rows_selected)) {
+    selected_data()[input$table_rows_selected, ]  # Ligne sélectionnée
+  } else {
+    NULL  # Aucune sélection
+  }
+})
+
   
   # Carte interactive initiale
   output$map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
-      setView(lng = -98, lat = 40, zoom = 4)
+      setView(lng = -98, lat = 38, zoom = 4)
   })
   
   # Mise à jour de la carte
@@ -199,36 +226,109 @@ server <- function(input, output, session) {
         clearMarkers() %>%
         addCircleMarkers(
           data = selected_row(),
-          ~longitude, ~latitude,
+          ~longitude, 
+          ~latitude,
           radius = ~mag * input$radius / 2,
           color = "blue",  # Couleur spécifique pour le séisme sélectionné
           stroke = TRUE,
           fillOpacity = 1,
           popup = ~paste(
-            "Lieu :", place, "<br>",
-            "Magnitude :", mag, "<br>",
-            "Profondeur :", depth, "km"
+            "<b>Lieu :</b>", place, "<br>",
+            "<b>Date :</b>", format(as.Date(time), "%d %B %Y"), "<br>",  # Ajout de la date
+            "<b>Magnitude :</b>", mag, "<br>",
+            "<b>Profondeur :</b>", depth, "km", "<br>",
+            "<b>Latitude :</b>", latitude, "<br>",
+            "<b>Longitude :</b>", longitude
+              )
           )
-        )
     } else {
       # Afficher tous les séismes filtrés
       leafletProxy("map", data = selected_data()) %>%
         clearMarkers() %>%
+        removeControl("legend") %>%
         addCircleMarkers(
-          ~longitude, ~latitude,
+          ~longitude, 
+          ~latitude,
           radius = ~mag * input$radius / 2,
-          color = ~colorNumeric("Reds", domain = data$mag)(mag),
+          color = ~colorNumeric(palette = c("#FF9999", "#FF6666", "#FF4500", "#D03028", "#AD2823"), domain = data$mag)(mag),
           stroke = FALSE,
           fillOpacity = 1,
           popup = ~paste(
-            "Lieu :", place, "<br>",
-            "Magnitude :", mag, "<br>",
-            "Profondeur :", depth, "km"
-          )
-        )
-    }
+            "<b>Lieu :</b>", place, "<br>",
+            "<b>Date :</b>", format(as.Date(time), "%d %B %Y"), "<br>",  # Ajout de la date
+            "<b>Magnitude :</b>", mag, "<br>",
+            "<b>Profondeur :</b>", depth, "km", "<br>",
+            "<b>Latitude :</b>", latitude, "<br>",
+            "<b>Longitude :</b>", longitude
+              )
+        ) %>%
+      # Ajouter une légende
+      addLegend(
+        position = "bottomright",  # Position de la légende
+        pal = colorNumeric(
+          palette = c("#FF7F7F", "#FF6666", "#FF4500", "#D03028", "#AD2823"),
+          domain = data$mag
+        ),
+        values = ~mag,  # Variable utilisée pour la légende
+        title = "Magnitude des Séismes",
+        labFormat = labelFormat(digits = 1), # Format des labels
+        opacity = 1,
+        layerId = "Légende"
+      )
+  }
   })
-  
+
+  #heatmap
+observe({
+  if (input$show_heatmap) {
+    # Filtrer les données et gérer les valeurs manquantes
+    filtered_data <- selected_data() %>%
+      filter(!is.na(longitude), !is.na(latitude), !is.na(mag))
+    
+    # Vérifier que les données sont disponibles
+if (nrow(filtered_data) > 0) {
+  leafletProxy("map", data = filtered_data) %>%
+    clearMarkers() %>%
+    addHeatmap(
+      lng = ~longitude,
+      lat = ~latitude,
+      value = ~mag,
+      blur = 20,
+      max = max(filtered_data$mag, na.rm = TRUE),
+      radius = 15,
+      gradient = list("0" = "blue", "0.5" = "lime", "1" = "red")
+    )
+} else {
+  print("Pas de données valides pour la Heatmap")
+  leafletProxy("map") %>% clearHeatmap()
+}
+
+  } else {
+    # Basculer vers les marqueurs classiques
+    leafletProxy("map", data = selected_data()) %>%
+      clearHeatmap() %>%
+      addCircleMarkers(
+        ~longitude, 
+        ~latitude,
+        radius = ~mag * input$radius / 2,
+        color = ~colorNumeric(
+          palette = c("#FF7F7F", "#FF6666", "#FF4500", "#D03028", "#AD2823"),
+          domain = data$mag
+        )(mag),
+        stroke = FALSE,
+        fillOpacity = 1,
+        popup = ~paste(
+          "<b>Lieu :</b>", place, "<br>",
+          "<b>Date :</b>", format(as.Date(time), "%d %B %Y"), "<br>",
+          "<b>Magnitude :</b>", mag, "<br>",
+          "<b>Profondeur :</b>", depth, "km"
+        )
+      )
+  }
+})
+
+
+
   # Tableau interactif
   output$table <- renderDT({
     datatable(selected_data()[, c("time", "latitude", "longitude", "mag", "depth")], 
@@ -376,6 +476,7 @@ data %>% filter(depth == 123.04)
 
 library(RColorBrewer)
 display.brewer.all()
+
 
 ```
 

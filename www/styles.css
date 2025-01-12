@@ -1,0 +1,60 @@
+.navbar + .container-fluid {
+    margin-top: 0 !important; /* Supprime uniquement l'espace entre la barre de navigation et le contenu */
+}
+
+/* Style général du tableau */
+.dataTables_wrapper {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+/* En-tête du tableau */
+.dataTable thead th {
+  background-color: #f8f9fa;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Lignes du tableau */
+.dataTable tbody tr {
+  background-color: #ffffff;
+}
+
+/* Ligne sélectionnée */
+.dataTable tbody tr.selected {
+  background-color: #f8f9fa !important;
+  color: #212529 !important;
+}
+
+/* Survol des lignes */
+.dataTable tbody tr:hover {
+  background-color: #f2f2f2 !important;
+}
+
+/* Pagination */
+.dataTables_paginate .paginate_button {
+  color: #495057 !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+.dataTables_paginate .paginate_button.current {
+  background: #e9ecef !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Recherche et info */
+.dataTables_filter input {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.dataTables_info {
+  color: #6c757d;
+}
+
+/* Contrôles de pagination et filtres */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+
