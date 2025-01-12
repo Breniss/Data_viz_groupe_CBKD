@@ -5,7 +5,7 @@ account: kbdc
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13667349
-bundleId: 9636781
+bundleId: 9637868
 url: https://kbdc.shinyapps.io/Data_viz_groupe_CBKD/
 version: 1
 asMultiple: FALSE

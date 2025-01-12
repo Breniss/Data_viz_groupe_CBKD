@@ -3,6 +3,9 @@ packages <- c("shiny", "leaflet", "ggplot2", "dplyr", "lubridate", "plotly",
               "DT", "flexdashboard", "shinythemes", "scales", "maps")
 
 options(repos = c(CRAN = "https://cran.rstudio.com"))
+options(repos = c(CRAN = "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"))
+
+
 
 # Installation et chargement des packages
 invisible(lapply(packages, function(pkg) {
@@ -19,17 +22,23 @@ load_and_clean_data <- function(file_path) {
   # Conversion des dates
   data$time <- as.POSIXct(data$time, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
   
-  # Nettoyage des données
+  # Vérification et nettoyage des colonnes si elles existent
+  if ("dmin" %in% colnames(data)) {
+    data$dmin <- ifelse(is.na(data$dmin), median(data$dmin, na.rm = TRUE), data$dmin)
+  }
+  
+  if ("magError" %in% colnames(data)) {
+    data$magError <- ifelse(is.na(data$magError), median(data$magError, na.rm = TRUE), data$magError)
+  }
+  
+  # Filtrage des données nécessaires et suppression des valeurs manquantes essentielles
   data <- data %>%
-    select(-horizontalError) %>%
-    mutate(
-      dmin = ifelse(is.na(dmin), median(dmin, na.rm = TRUE), dmin),
-      magError = ifelse(is.na(magError), median(magError, na.rm = TRUE), magError),
-      magNst = ifelse(is.na(magNst), median(magNst, na.rm = TRUE), magNst)
-    )
+    filter(!is.na(mag), !is.na(depth)) %>%  # Exclure les valeurs manquantes critiques
+    select(time, mag, depth, latitude, longitude, place)  # Garder les colonnes utiles
   
   return(data)
 }
+
 
 # Configuration de la palette de couleurs
 create_color_palette <- function(data) {
@@ -123,7 +132,7 @@ ui <- fluidPage(
     ),
     # Nouvel onglet regroupé
     tabPanel(
-      "Graphiques interressants",
+      "Graphiques intéressants",
       fluidRow(
         column(
           width = 12,
@@ -174,6 +183,7 @@ ui <- fluidPage(
 
 # Server
 server <- function(input, output, session) {
+  
   # Chargement des données réactif
   data <- reactive({
     load_and_clean_data("data/Data1.csv")
@@ -372,10 +382,11 @@ server <- function(input, output, session) {
         )
     }
   })
+
   
   # Graphiques d'analyse (tous conservés comme dans l'original)
   output$time_series <- renderPlotly({
-    filtered_data() %>%
+    data() %>%
       mutate(date = as.Date(time)) %>%
       group_by(date) %>%
       summarise(
@@ -404,7 +415,7 @@ server <- function(input, output, session) {
   
   # Les autres graphiques sont conservés à l'identique...
   output$magnitude_distribution <- renderPlotly({
-    plot_ly(filtered_data(), x = ~mag, type = "histogram", nbinsx = 20) %>%
+    plot_ly(data(), x = ~mag, type = "histogram", nbinsx = 20) %>%
       layout(
         title = "Répartition des Magnitudes",
         xaxis = list(title = "Magnitude"),
@@ -413,7 +424,7 @@ server <- function(input, output, session) {
   })
   
   output$regional_comparison <- renderPlotly({
-    filtered_data() %>%
+    data() %>%
       mutate(
         region = case_when(
           longitude < -115 ~ "Ouest",
@@ -441,7 +452,7 @@ server <- function(input, output, session) {
   
   output$magnitude_depth_correlation <- renderPlotly({
     plot_ly(
-      data = filtered_data(),
+      data = data(),
       x = ~depth,
       y = ~mag,
       type = "scatter",
