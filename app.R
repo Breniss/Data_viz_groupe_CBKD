@@ -94,13 +94,19 @@ ui <- fluidPage(
         column(
           width = 12,
           h2("Contexte de l'étude"),
-          p("Cette application permet d'explorer les séismes enregistrés aux États-Unis et au Mexique. 
+          p("Cette application permet d'explorer les séismes enregistrés aux États-Unis. 
             L'objectif est de fournir une visualisation interactive des caractéristiques temporelles et géographiques des séismes. 
-            Les assureurs peuvent s'y référer afin de pouvoir ajuster la prime commerciale en fonction du lieu de résidence dans le cadre d'une assurance MRH par exemple."),
+            Les assureurs peuvent s'y référer afin de pouvoir ajuster la prime commerciale en fonction du lieu de résidence 
+            dans le cadre d'une assurance MRH par exemple, ou pour une assurance de batiments industriels."),
+          p("Les séismes sont des phénomènes imprévisibles aux conséquences potentiellement dévastatrices, qui nécessitent une 
+          analyse statistique pour mieux comprendre leurs caractéristiques (magnitude, profondeur). Cette étude porte sur les séismes
+          enregistrés aux États-Unis entre le 1er mai et le 31 juillet 2023. En exploitant des données géographiques
+          (longitude, latitude), sismiques (magnitude, profondeur) et temporelles, nous visualiserons ces événements et 
+          analyserons leurs distributions et relations."),
           h2("Les données source"),
-          p(
-            "Les données proviennent du site USGS (United States Geological Survey) et contiennent des informations 
-            sur la magnitude, la profondeur, les coordonnées géographiques, ainsi que la date et l'heure des séismes, ainsi que d'autres variables apportant quelques détails.
+          p("Les données proviennent du site USGS (United States Geological Survey) et contiennent des informations 
+            sur la magnitude, la profondeur, les coordonnées géographiques, ainsi que la date et l'heure des séismes, 
+            ainsi que d'autres variables apportant quelques détails.
             Voici le lien source des données : ",
             tags$a(href = "https://earthquake.usgs.gov/earthquakes/search/", 
                    target = "_blank", "Cliquez ici pour accéder aux données.")
@@ -108,7 +114,38 @@ ui <- fluidPage(
           h3("Résumé des données"),
           tableOutput("data_summary"),
           h3("Carte des séismes"),
-          plotOutput("static_map", height = "500px")
+          plotOutput("static_map", height = "500px"),
+          p("La carte ci-dessus présente la répartition géographique des séismes aux États-Unis sur la période étudiée.
+              Les points représentent les séismes, avec une taille et une couleur proportionnelles à leur magnitude, ce qui
+              permet de visualiser à la fois l’intensité et la localisation des événements."),
+          p("Cette carte met en évidence une concentration majeure de séismes le long de la côte ouest, particulièrement en Californie, 
+            où les failles tectoniques sont les plus actives. Les séismes de forte magnitude (en rouge) sont rares mais bien localisés 
+            dans des régions tectoniquement actives. Ces observations sont cohérentes avec la distribution géologique des failles aux États-Unis."),
+        )
+      )
+    ),
+    tabPanel(
+      "Informations",
+      fluidRow(
+        column(
+          width = 12,
+          h2("Synthèse sur les séismes et l'assurance"),
+          p("Les séismes sont des phénomènes naturels imprévisibles qui peuvent causer des dégâts significatifs aux infrastructures et engendrer des pertes humaines et financières."),
+          p("Dans un cadre assurantiel, il est crucial de comprendre ces phénomènes pour évaluer les risques associés et ajuster les primes d'assurance. Les visualisations proposées dans cette application permettent aux assureurs de :"),
+          tags$ul(
+            tags$li("Analyser les tendances historiques des séismes."),
+            tags$li("Identifier les zones géographiques les plus exposées."),
+            tags$li("Évaluer la corrélation entre la magnitude et la profondeur des séismes.")
+          ),
+          p("L'intégration de ces données dans des modèles actuariels permet de mieux quantifier les risques et d'établir des stratégies adaptées pour couvrir les sinistres majeurs."),
+          h3("Qu'est-ce qu'un séisme ?"),
+          p("Un séisme est une vibration brusque de la surface de la Terre causée par la libération d'énergie accumulée sous forme de tension dans les roches. Cette énergie est souvent due au déplacement des plaques tectoniques le long des failles géologiques. Les ondes sismiques produites se propagent à travers le sol, provoquant des secousses pouvant causer des dommages aux infrastructures, des pertes humaines et des changements géologiques."),
+          h3("Qu'est-ce que la magnitude ?"),
+          p("La magnitude d'un séisme est une mesure de l'énergie libérée lors de celui-ci. Elle est déterminée sur une échelle logarithmique, comme l'échelle de Richter ou l'échelle de moment sismique (Mw). Chaque augmentation d'un point sur l'échelle représente une énergie environ 32 fois plus importante."),
+          div(
+            style = "text-align: center;",
+            img(src = "Richter.jpeg", height = "300px", width = "600px", alt = "Image sur les séismes")
+          )
         )
       )
     ),
@@ -120,7 +157,7 @@ ui <- fluidPage(
         sidebarPanel(
           sliderInput("radius", "Taille des points", min = 1, max = 10, value = 3),
           sliderInput("magnitude", "Filtrer par magnitude :", min = 1, max = 6, value = c(1, 6)),
-          sliderInput("depth", "Filtrer par profondeur :", min = -10, max = 150, value = c(0, 100)),
+          sliderInput("depth", "Filtrer par profondeur :", min = -5, max = 130, value = c(0, 100)),
           actionButton("reset", "Réinitialiser les filtres"),
           downloadButton("downloadData", "Télécharger les données filtrées")
         ),
@@ -128,11 +165,12 @@ ui <- fluidPage(
           leafletOutput("map", height = 400),
           DTOutput("table")
         )
-      )
-    ),
+      ),
+      h2("Observations"),
+      p("On peut remarquer que la profondeur peut être négative. Par exemple, certains séismes ont une profondeur de -2 km. Ce phénomène s'explique par le fait que certains séismes sont en réalité artificiels, provoqués par l'activité humaine, notamment dans le cadre d'extractions minières.")),
     # Nouvel onglet regroupé
     tabPanel(
-      "Graphiques intéressants",
+      "Graphiques",
       fluidRow(
         column(
           width = 12,
@@ -144,40 +182,19 @@ ui <- fluidPage(
       fluidRow(
         column(
           width = 12,
-          h3("Graphique temporel"),
+          h2("Graphique temporel"),
           plotlyOutput("time_series"),
-          h3("Distribution des magnitudes"),
+          h2("Distribution des magnitudes"),
           plotlyOutput("magnitude_distribution"),
-          h3("Comparaison régionale"),
+          h2("Comparaison régionale"),
           plotlyOutput("regional_comparison"),
-          h3("Corrélation Magnitude vs Profondeur"),
-          plotlyOutput("magnitude_depth_correlation")
-        ))),
-      tabPanel(
-        "Synthèse",
-        fluidRow(
-          column(
-            width = 12,
-            h2("Synthèse sur les séismes et l'assurance"),
-            p("Les séismes sont des phénomènes naturels imprévisibles qui peuvent causer des dégâts significatifs aux infrastructures et engendrer des pertes humaines et financières."),
-            p("Dans un cadre assurantiel, il est crucial de comprendre ces phénomènes pour évaluer les risques associés et ajuster les primes d'assurance. Les visualisations proposées dans cette application permettent aux assureurs de :"),
-            tags$ul(
-              tags$li("Analyser les tendances historiques des séismes."),
-              tags$li("Identifier les zones géographiques les plus exposées."),
-              tags$li("Évaluer la corrélation entre la magnitude et la profondeur des séismes.")
-            ),
-            p("L'intégration de ces données dans des modèles actuariels permet de mieux quantifier les risques et d'établir des stratégies adaptées pour couvrir les sinistres majeurs."),
-            h3("Qu'est-ce qu'un séisme ?"),
-            p("Un séisme est une vibration brusque de la surface de la Terre causée par la libération d'énergie accumulée sous forme de tension dans les roches. Cette énergie est souvent due au déplacement des plaques tectoniques le long des failles géologiques. Les ondes sismiques produites se propagent à travers le sol, provoquant des secousses pouvant causer des dommages aux infrastructures, des pertes humaines et des changements géologiques."),
-            h3("Qu'est-ce que la magnitude ?"),
-            p("La magnitude d'un séisme est une mesure de l'énergie libérée lors de celui-ci. Elle est déterminée sur une échelle logarithmique, comme l'échelle de Richter ou l'échelle de moment sismique (Mw). Chaque augmentation d'un point sur l'échelle représente une énergie environ 32 fois plus importante."),
-            div(
-              style = "text-align: center;",
-              img(src = "Richter.jpeg", height = "300px", width = "600px", alt = "Image sur les séismes")
-            )
-          )
-        )
-      )
+          h2("Corrélation Magnitude vs Profondeur"),
+          plotlyOutput("magnitude_depth_correlation"),
+          h3("Observations"),
+          p("L'histogramme révèle une forte concentration des séismes avec une magnitude comprise entre 1.5 et 2.5,
+            tandis que les magnitudes supérieures à 4 sont rares. Ces résultats confirment que les séismes majeurs sont
+            exceptionnels. Ces graphiques nous permettent également de confirmer que la majorité des séismes sont sur la côte Ouest")
+        )))
     )
 )
 
@@ -417,9 +434,9 @@ server <- function(input, output, session) {
   output$magnitude_distribution <- renderPlotly({
     plot_ly(data(), x = ~mag, type = "histogram", nbinsx = 20) %>%
       layout(
-        title = "Répartition des Magnitudes",
+        title = "Répartition des magnitudes",
         xaxis = list(title = "Magnitude"),
-        yaxis = list(title = "Nombre de Séismes")
+        yaxis = list(title = "Nombre de séismes")
       )
   })
   
@@ -442,9 +459,9 @@ server <- function(input, output, session) {
         type = "bar"
       ) %>%
       layout(
-        title = "Comparaison des Séismes par Région",
+        title = "Comparaison des séismes par région",
         xaxis = list(title = "Date"),
-        yaxis = list(title = "Nombre de Séismes"),
+        yaxis = list(title = "Nombre de séismes"),
         barmode = "stack"
       )
   })
@@ -461,7 +478,7 @@ server <- function(input, output, session) {
       colors = "Blues"
     ) %>%
       layout(
-        title = "Corrélation entre Magnitude et Profondeur",
+        title = "Corrélation entre magnitude et profondeur",
         xaxis = list(title = "Profondeur (km)"),
         yaxis = list(title = "Magnitude")
       )
